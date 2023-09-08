@@ -1,0 +1,22 @@
+
+# os related
+*.swp
+.DS_Store
+
+# caches
+__pycache__
+.mypy_cache
+
+# env related
+venv*
+*venv
+node_modules
+
+# build related
+build
+dist
+specs
+
+# other files & directories
+backups
+keys
