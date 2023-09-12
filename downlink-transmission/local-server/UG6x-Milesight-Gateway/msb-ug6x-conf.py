@@ -156,11 +156,11 @@ class LogLevel(IntEnum):
         obj.description = description
         return obj
 
-    INFO = (INFO, "INFO", "Logs: info, warning, error, critical")
-    WARNING = (WARNING, "WARNING", "Logs: warning, error, critical")
-    ERROR = (ERROR, "ERROR", "Logs: error, critical")
-    CRITICAL = (CRITICAL, "CRITICAL", "Logs: critical")
-    DEBUG = (DEBUG, "DEBUD", "Logs: info, warning, error, critical, debug")
+    INFO = (INFO, "INFO", "Logs: INFO, WARNING, ERROR, CRITICAL")
+    WARNING = (WARNING, "WARNING", "Logs: WARNING, ERROR, CRITICAL")
+    ERROR = (ERROR, "ERROR", "Logs: ERROR, CRITICAL")
+    CRITICAL = (CRITICAL, "CRITICAL", "Logs: CRITICAL")
+    DEBUG = (DEBUG, "DEBUD", "Logs: INFO, WARNING, ERROR, CRITICAL, DEBUG")
 
     @staticmethod
     def get_value_by_phrase(_phrase: str, /) -> int:
