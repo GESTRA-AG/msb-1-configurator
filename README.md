@@ -1,29 +1,37 @@
 # MSB Configurator
 
-This repository contains different methods to configure Multisense Bolt devices. A configuration process can be split into 2 sections:
+This repository contains different methods to configure Multisense Bolt (MSB) / ecoBolt devices.
+
+A configuration process can be split into 2 sections:
 
 1. Generating dynamic configuration downlinks based on given parameter set.
-2. Publishing the downlinks to the corresponding devices through different API's.
+2. Publishing the generated configuration downlinks to the corresponding devices.
 
 ## 1. Configuration Downlinks Build
 
-In this step an _excel_ or _csv_ file is beeing parsed for neccessary parameters and downlinks are beeing generated based on those parameter set. For **BK** (bimetalic) and **MK** (membrane or capsule) steam trap types, the table must include at least **deveui** _(devices extended unique identifier)_, **sst** _(saturated steam temperature)_, **stt** _(steam trap type)_ and **dmt** _(device mounting type)_. For **UNA** (ball float) ...
+Use the provided ...
 
-## 2. Trasmission of Downlinks
+## 2. Downlinks Transmission
 
-...
+In this step a second script or executable is beeing run in order to send all configuration downlinks which were generated in step 1. Which script needs to be run depends on the LoRa network server you are using. So if you use cloud LoRa service providers like [TTN & TTI](#the-things-network-ttn--the-things-industries-tti-servers) or [LORIOT](#loriot-servers), use respective scripts / executables. For local LoRa networks look under [Local Network Servers](#local-network-servers) if a solution is available for your type of infrastructure.
+
+Feel free to request a custom solution or suggest one by [forking](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks) this repository and creating a [pull-request (PR)](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request).
 
 ### The Things Network (TTN) & The Things Industries (TTI) Servers
 
-TBD
+Not implemented yet.
 
 ### LORIOT Servers
 
-TBD
+Not implemented yet.
 
 ### Local Network Servers
 
 This section contains solutions for LoRa network servers which run locally on a gateway or other private server.
+
+Supported Instances:
+
+- Local Server on Milesight UG6x Gateways
 
 #### UG6x Milesight Gateway
 
@@ -36,12 +44,12 @@ A Milesight UG6x gateway has a build in API which provides routes to query appli
 The executables do not require python to be installed on the host maschine in order to run.
 
 However, if you run the script [msb-ug6x-conf.py](https://github.com/GESTRA-AG/msb-1-configurator/blob/main/downlink-transmission/local-server/UG6x-Milesight-Gateway/msb-ug6x-conf.py) directly, you need to install at least the **httpx** package and all sub-dependencies.  
-This command will do it for you: **python -m pip install httpx**
+This command will do this for you: **python -m pip install httpx**
 
-To run the script [gen-exe.py](https://github.com/GESTRA-AG/msb-1-configurator/blob/main/downlink-transmission/local-server/UG6x-Milesight-Gateway/gen-exe.py) in order to generate another executable, you need to install at least the **pyinstaller** package and all sub-dependencies as well as all dependencies of the app itself (means also **httpx** and all sub-dependencies of those).  
+To run the script [gen-exe.py](https://github.com/GESTRA-AG/msb-1-configurator/blob/main/downlink-transmission/local-server/UG6x-Milesight-Gateway/gen-exe.py) in order to generate another executable, you need to install at least the **pyinstaller** package and all sub-dependencies as well as all dependencies and sub-dependencies of the app itself (means also **httpx** and all sub-dependencies of those).  
 This command will do it for you: **python -m pip install httpx pyinstaller**
 
-To install exact the same dependency versions as this was implemented with, you can use the [requirements.txt](https://github.com/GESTRA-AG/msb-1-configurator/blob/main/downlink-transmission/local-server/UG6x-Milesight-Gateway/requirements.txt) file in combination with following pip-command:  
+To install exact the same dependency versions as this was implemented with (tested compability), you can use the [requirements.txt](https://github.com/GESTRA-AG/msb-1-configurator/blob/main/downlink-transmission/local-server/UG6x-Milesight-Gateway/requirements.txt) file in combination with following pip-command:  
 **python -m pip install -r requirements.txt**
 
 ##### Usefull links
