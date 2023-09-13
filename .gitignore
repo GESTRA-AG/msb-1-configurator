@@ -22,3 +22,14 @@ backups
 data
 keys
 output
+
+*.csv
+*.xlsx
+*.json
+*.yml
+*.yaml
+!ptmap.csv
+!template.xlsx
+!configuration.example.json
+!config.yml
+!config.yaml
