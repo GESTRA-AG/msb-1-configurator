@@ -19,4 +19,6 @@ specs
 
 # other files & directories
 backups
+data
 keys
+output

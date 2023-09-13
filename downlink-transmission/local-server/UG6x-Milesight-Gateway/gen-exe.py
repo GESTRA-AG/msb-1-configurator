@@ -4,11 +4,12 @@ import shutil
 import PyInstaller.__main__ as pyinstaller
 
 """
-This file creates an executable file for windows, linux and macosx depending
-on which type of os this script is beeing run.
+This file creates an executable file for windows, linux or macosx
+depending on which type of os this script is beeing run.
 """
 
 if __name__ == "__main__":
+    # constant params
     APP_NAME: str = "UG6x-Downlink-Pusher"
     BUILD_PATH: str = "./build"
     DIST_PATH: str = "./dist"

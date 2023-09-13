@@ -3,7 +3,8 @@ from __future__ import annotations
 from base64 import b64encode
 from enum import IntEnum
 from datetime import datetime
-from json import dump as json_save, load as json_load
+from inspect import Parameter, signature
+from json import dump as json_save, dumps as json_dump, load as json_load
 from logging import (
     getLogger,
     Logger,
@@ -19,12 +20,91 @@ from logging import (
 from os import path as ospath
 from pathlib import Path
 from sys import path as syspath, stderr, stdout
+from typing import Callable
 
-from httpx import Client, Response, Timeout
+from httpx import Client, HTTPStatusError, Response, Timeout
 
 # * request methods * #########################################################
 
 
+def trycatchcall(func: Callable) -> Callable:
+    """Request / API call decorator to check positional and keyword arguments
+    and catch and log invalid HTTP status codes and other occouring exceptions
+    without exiting the script.
+
+    Args:
+        func (Callable): Request / API call method (below defined functions)
+
+    Raises:
+        ModuleNotFoundError: Raised if no global logger has been found.
+
+    Returns:
+        Callable: Wrapped request method / function.
+    """
+    globalvars = globals()
+    for name, var in globalvars.items():
+        if isinstance(var, Logger) and name != "Logger":
+            log: Logger = var
+            break
+        else:
+            continue
+    else:
+        raise ModuleNotFoundError(
+            f"Couldn't find global logger instance in globals dictionary."
+        )
+
+    def wrapper(*args, **kwargs) -> Response:
+        """Wrapper
+
+        Returns:
+            Response: httpx.Response object with json() method
+        """
+        # get the function's parameter names and their expected types
+        params = signature(func).parameters
+        param_types = {
+            param: params[param].annotation
+            for param in params
+            if params[param].annotation is not Parameter.empty
+        }
+        # check input types
+        for param, expected_type in param_types.items():
+            if param in kwargs:
+                if not isinstance(kwargs[param], expected_type):
+                    log.debug(
+                        f"Keyword argument '{param}' should be of type "
+                        f"{expected_type}"
+                    )
+            elif args and len(args) >= params[param].position:
+                arg_value = args[params[param].position - 1]
+                if not isinstance(arg_value, expected_type):
+                    log.debug(
+                        f"Positional argument '{param}' should be of type "
+                        f"{expected_type}"
+                    )
+        # wrap and process call
+        try:
+            response: Response = func(*args, **kwargs)
+            response.raise_for_status()
+        except HTTPStatusError as httperr:
+            log.error(
+                f"Got invalid HTTP status code after calling {func.__name__}: "
+                f"{response.status_code} != 200 (OK) >>> {httperr}"
+            )
+        except Exception as err:
+            log.critical(
+                f"Request (API call) '{func.__name__}' couldn't processed, "
+                f"cause: {err}"
+            )
+        else:
+            log.debug(
+                f"Successfully called '{func.__name__}' (API call), "
+                f"Response.json() (dump): {json_dump(response.json())}"
+            )
+
+    return wrapper
+
+
+@trycatchcall
 def login(username: str = "apiuser", password: str = "password") -> Response:
     """Login using UG6x username and password for authentication
 
@@ -47,12 +127,13 @@ def login(username: str = "apiuser", password: str = "password") -> Response:
         dct = response.json()
         if "jwt" in dct:
             client.headers.update({"Authorization": f"Bearer {dct['jwt']}"})
-    else:
-        response.raise_for_status()
+    # else: # already done in @trycatchcall
+    #     response.raise_for_status()
 
     return response
 
 
+@trycatchcall
 def get_devices(limit: int = 1000, offset: int = 0) -> Response:
     """Get all available devices
 
@@ -70,6 +151,7 @@ def get_devices(limit: int = 1000, offset: int = 0) -> Response:
     return client.get("devices", params=params)
 
 
+@trycatchcall
 def get_downlink_queue(devEUI: str) -> Response:
     """Get all downlink items in the device-queue
 
@@ -83,6 +165,7 @@ def get_downlink_queue(devEUI: str) -> Response:
     return client.get(f"/devices/{devEUI}/queue")
 
 
+@trycatchcall
 def flush_downlink_queue(devEUI: str) -> Response:
     """Flush (delete) the downlink device-queue
 
@@ -96,6 +179,7 @@ def flush_downlink_queue(devEUI: str) -> Response:
     return client.delete(f"/devices/{devEUI}/queue")
 
 
+@trycatchcall
 def queue_downlink(
     devEUI: str,
     data: str,
@@ -321,7 +405,7 @@ if __name__ == "__main__":
             )
 
             downlinks = gw["downlinks"]
-            # * loop over downlinks per device * ------------------------------
+            # * loop over downlinks per device * ++++++++++++++++++++++++++++++
             for dev_eui, downlinks in zip(downlinks, downlinks.values()):
                 try:
                     dev_eui = dev_eui.strip().upper()
