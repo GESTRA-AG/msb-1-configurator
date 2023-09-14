@@ -1,4 +1,4 @@
-import os, sys
+import os
 import shutil
 
 import PyInstaller.__main__ as pyinstaller
@@ -10,7 +10,9 @@ depending on which type of os this script is beeing run.
 
 if __name__ == "__main__":
     # constant params
-    APP_NAME: str = "MSB-UG6x-Conf.exe"
+    SOURCE_FILE: str = "./gen-downlinks.py"
+    WORK_DIRECTORY: str = "./downlink-generation"
+    APP_NAME: str = "Gen-Downlinks.exe"
     BUILD_PATH: str = "./build"
     DIST_PATH: str = "./dist"
     SPECS_PATH: str = "./specs"
@@ -18,8 +20,8 @@ if __name__ == "__main__":
     # change path if neccessary
     try:
         cwd = os.getcwd()
-        if not cwd.endswith(APP_NAME):
-            path = os.path.abspath(os.path.join(cwd, APP_NAME))
+        if not cwd.endswith(WORK_DIRECTORY):
+            path = os.path.abspath(WORK_DIRECTORY)
             if os.path.exists(path) and os.path.isdir(path):
                 os.chdir(path)
     except Exception as err:
@@ -29,7 +31,7 @@ if __name__ == "__main__":
     try:
         pyinstaller.run(
             [
-                "./msb-ug6x-conf.py",
+                SOURCE_FILE,
                 "--name",
                 APP_NAME,
                 "--distpath",
