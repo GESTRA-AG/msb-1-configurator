@@ -28,7 +28,7 @@
       "content-type": "application/json"
     }
   },
-  "gateways": [
+  "server": [
     {
       "address": {
         "host": "192.168.23.1",

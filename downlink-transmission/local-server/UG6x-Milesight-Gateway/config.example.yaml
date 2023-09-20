@@ -1,0 +1,25 @@
+---
+input:
+  filepath: "./downlinks.json"
+general:
+  encoding: "utf-8"
+logging:
+  encoding: "utf-8"
+  fileHandler:
+    logsDirectory: "./logs"
+    filenameFormat: "%Y-%m-%d--%H-%M-%S" # -> ./logs/<datetime>.log
+    logLevel: "DEBUG" # INFO | WARNING | ERROR | CRITICAL | DEBUG
+    formatter: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  streamHandler:
+    console: "stdout" # stderr | stdout
+    logLevel: "INFO" # INFO | WARNING | ERROR | CRITICAL | DEBUG
+    formatter: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+client:
+  enableEnvVars: false
+  insecure: true
+  encoding: "utf-8"
+  timeouts:
+    connect: 10.0
+    read: 12.5
+    write: 15.0
+    pool: 5.0
