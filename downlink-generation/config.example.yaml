@@ -1,0 +1,29 @@
+---
+input:
+  filepath: "./input.xlsx" # if not present, template.xlsx will be used
+  skiprows: 2
+lookup:
+  # this does not require any adjustments
+  workbook: "./conf-table.xlsx"
+  sheet1: "Conf-Table" # protected sheet
+  sheet2: "P-T-Table" # protected sheet
+logging:
+  encoding: "utf-8"
+  fileHandler:
+    logsDirectory: "./logs"
+    filenameFormat: "%Y-%m-%d--%H-%M-%S" # -> ./logs/<datetime>.log
+    logLevel: "DEBUG" # INFO | WARNING | ERROR | CRITICAL | DEBUG
+    formatter: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  streamHandler:
+    console: "stdout" # stderr | stdout
+    logLevel: "INFO" # INFO | WARNING | ERROR | CRITICAL | DEBUG
+    formatter: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+downlinks:
+  fport: 2 # LoRa port
+  confirmed: true # enables downlink receive confirmation (ACK flag message)
+  flushQueue: true # enables downlink queue flush before configuration
+  resetErrorCounters: true # enables reset of msb error counters
+output:
+  filepath: "./downlinks.json"
+  indent: 4 # unsigned integer | null, json formatter parameter
+server: "UG6x"

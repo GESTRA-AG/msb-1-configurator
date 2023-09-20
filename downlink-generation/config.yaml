@@ -1,4 +1,0 @@
----
-input: "./template.xlsx"
-output: "./config.example.json"
-server: "UG6x"

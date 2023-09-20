@@ -20,7 +20,9 @@ specs
 # other files & directories
 backups
 data
+*.key
 keys
+logs
 output
 
 *.csv
@@ -28,8 +30,11 @@ output
 *.json
 *.yml
 *.yaml
-!ptmap.csv
+*.exe
+
+!config.example.yaml
+!conf-table.xlsx
 !template.xlsx
-!configuration.example.json
-!config.yml
-!config.yaml
+!downlinks.example.json
+!Gen-Downlinks.*
+!MSB-UG6x-Conf.*

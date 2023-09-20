@@ -12,7 +12,7 @@ from logging import (
     StreamHandler,
     DEBUG,
 )
-from os import path as pathfx, mkdir
+from os import getcwd, chdir, path as pathfx, chdir
 from pathlib import Path
 from sys import stderr, stdout
 from typing import Any, Callable, Dict
@@ -154,8 +154,9 @@ def trycatchcall(func: Callable) -> Callable:
         #             )
         # wrap and process call
         try:
-            response: Response = func(*args, **kwargs)
-            response.raise_for_status()
+            pass
+            # response: Response = func(*args, **kwargs)
+            # response.raise_for_status()
         except HTTPStatusError as httperr:
             log.error(
                 f"Got invalid HTTP status code after calling {func.__name__}: "
@@ -167,11 +168,11 @@ def trycatchcall(func: Callable) -> Callable:
                 f"cause: {err}"
             )
         # ! switch back
-        else:
-            log.debug(
-                f"Successfully called '{func.__name__}' (API call), "
-                f"Response.json() (dump): {json_dump(response.json())}"
-            )
+        # else:
+        #     log.debug(
+        #         f"Successfully called '{func.__name__}' (API call), "
+        #         f"Response.json() (dump): {json_dump(response.json())}"
+        #     )
 
     return wrapper
 
@@ -314,10 +315,8 @@ def import_yaml_config(filepath: str | Path) -> Dict[str, Any]:
 def _trace(_dev_eui: bool = True) -> str:
     global server
     global dev_eui
-    # todo: fix
-    return "XXXX"
     return (
-        f"{server['address']['host']}:{server['address']['port']}:{dev_eui}"
+        f"{server['address']['host']}:{server['address']['port']}/{dev_eui}"
         if _dev_eui
         else f"{server['address']['host']}:{server['address']['port']}"
     )
@@ -326,6 +325,12 @@ def _trace(_dev_eui: bool = True) -> str:
 # ! Script Section ! ##########################################################
 
 if __name__ == "__main__":
+    # * fix work directory * ##################################################
+    workdir = Path("downlink-transmission/local-server/UG6x-Milesight-Gateway")
+    if not getcwd().endswith(str(workdir)):
+        chdir(workdir)
+        # print(f"CWD: {getcwd()}")
+
     # * import global config * ################################################
     for file in ["./config.yaml", "./config.yml", "./config.example.yaml"]:
         if pathfx.isfile(file):
@@ -337,6 +342,7 @@ if __name__ == "__main__":
 
     # * create logger instance * ##############################################
     log = init_logger()
+    log.info(f"CWD: {workdir.absolute()}")
 
     # * load input file * #####################################################
     try:
@@ -480,9 +486,11 @@ if __name__ == "__main__":
                     except Exception as err:
                         log.error(f"Downlink queue error of {_trace()}: {err}")
                     else:
-                        log.info(f"Queued downlinks for {_trace()}")
+                        log.debug(
+                            f"Queued downlink '{downlink}' for {_trace()}"
+                        )
                 else:
-                    log.debug(f"Downlink loop over without interruptions.")
+                    log.info(f"Queued downlinks for {_trace()}")
                 # * save queue list after processing (optional)
                 # todo: needs refactoring (cause config has been changed)
                 # if server["downlinkSettings"]["saveQueuePostProcess"]:
@@ -548,4 +556,6 @@ if __name__ == "__main__":
             f"Successfully queued {n_downlinks}/{n_total_downlinks} downlinks."
         )
 
-    # END
+    log.info("All done.")
+
+# * EOF * #####################################################################
