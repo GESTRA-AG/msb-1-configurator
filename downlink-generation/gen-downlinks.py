@@ -228,12 +228,12 @@ def tohex(value: int, zpad: Optional[int] = None) -> str:
 
 
 def build_downlinks(
-    row: Series, pressure: int | float, reset_counters: bool = True
+    row: Series, pressure: int | float, dn: int, reset_counters: bool = True
 ) -> List[str]:
     """Build ordered downlink list for MSB configuration.
 
     Args:
-        row (Series): Current user defined input params row.
+        row (Series): Matched parameter row.
         pressure (int | float): Corresponding differential pressure.
         reset_counters (bool, optional): Whenever to reset warn and error
             counters. Defaults to True.
@@ -265,30 +265,33 @@ def build_downlinks(
     downlinks.append(f"830{stidx}01{tohex(row['lv'], 2)}")  # LV (noise)
 
     # set steam-loss thresholds and corresponding steam-loss values
+    c = 4 if stidx == SteamTrapTypes.UNA.value and dn >= 40 else 1  # correction
     downlinks.append(f"8d0{stidx}00{tohex(row['slth0'], 2)}".lower())  # SLTh0
     downlinks.append(
-        f"830{stidx}01{tohex(row['slval0'], 2)}".lower()
+        f"8d0{stidx}01{tohex(row['slval0']*c, 2)}".lower()
     )  # SLVal0
     downlinks.append(f"8d0{stidx}02{tohex(row['slth1'], 2)}")  # SLTh1
-    downlinks.append(f"830{stidx}03{tohex(row['slval1'], 2)}")  # SLVal1
+    downlinks.append(f"8d0{stidx}03{tohex(row['slval1']*c, 2)}")  # SLVal1
     downlinks.append(f"8d0{stidx}04{tohex(row['slth2'], 2)}")  # SLTh2
-    downlinks.append(f"830{stidx}05{tohex(row['slval2'], 2)}")  # SLVal2
+    downlinks.append(f"8d0{stidx}05{tohex(row['slval2']*c, 2)}")  # SLVal2
 
     # set counters thresholds
+    # todo: ...
     downlinks.append(f"8402{tohex(36, 4)}")  # WarnCntThDef
     downlinks.append(f"8502{tohex(72, 4)}")  # ErrCntThDef
 
     # reset counters and set uplink frequency back to 1h
     if reset_counters:
         downlinks.append(f"04fc")  # counters reset
-    downlinks.append(tohex(0x01000000 | 86400, 8))  # 1h uplink frequency
+    downlinks.append(tohex(0x01000000 | 3600, 8))  # 1h uplink frequency
+    # todo: put uplink frequency in config
 
     return downlinks
 
 
 if __name__ == "__main__":
     # * fix work directory * ##################################################
-    workdir = Path("downlink-transmission/local-server/UG6x-Milesight-Gateway")
+    workdir = Path("downlink-generation")
     if not getcwd().endswith(str(workdir)):
         chdir(workdir)
         # print(f"CWD: {getcwd()}")
@@ -397,8 +400,9 @@ if __name__ == "__main__":
                             dct["server"][server_index]["downlinks"][
                                 row["deveui"]
                             ] = build_downlinks(
-                                _row,
+                                _row,   # loop-up table
                                 pressure,
+                                row["dn"],  # user defined input
                                 config["downlinks"]["resetErrorCounters"],
                             )
                             break  # to bypass for-else block if matched

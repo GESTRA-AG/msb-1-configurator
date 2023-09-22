@@ -12,13 +12,15 @@ from logging import (
     StreamHandler,
     DEBUG,
 )
-from os import getcwd, chdir, path as pathfx, chdir
+from os import getcwd, chdir, path as pathfx, mkdir
 from pathlib import Path
 from sys import stderr, stdout
 from typing import Any, Callable, Dict
 
 from httpx import Client, HTTPStatusError, Response, Timeout
 from yaml import load as yaml_load, SafeLoader as YAMLSafeLoader
+
+# todo: skip server (continue) if authentication failed ..
 
 # * logging methods * #########################################################
 
@@ -154,9 +156,9 @@ def trycatchcall(func: Callable) -> Callable:
         #             )
         # wrap and process call
         try:
-            pass
-            # response: Response = func(*args, **kwargs)
-            # response.raise_for_status()
+            response: Response = func(*args, **kwargs)
+            response.raise_for_status()
+            return response
         except HTTPStatusError as httperr:
             log.error(
                 f"Got invalid HTTP status code after calling {func.__name__}: "
@@ -167,12 +169,12 @@ def trycatchcall(func: Callable) -> Callable:
                 f"Request (API call) '{func.__name__}' couldn't processed, "
                 f"cause: {err}"
             )
-        # ! switch back
-        # else:
-        #     log.debug(
-        #         f"Successfully called '{func.__name__}' (API call), "
-        #         f"Response.json() (dump): {json_dump(response.json())}"
-        #     )
+        else:
+            # todo: why?
+            log.debug(
+                f"Successfully called '{func.__name__}' (API call), "
+                f"Response.json() (dump): {json_dump(response.json())}"
+            )
 
     return wrapper
 
@@ -264,6 +266,7 @@ def queue_downlink(
     confirmed: bool = True,
     jsonObject: dict | None = None,
     reference: str | None = None,
+    convert_to_base64: bool = True,
 ) -> Response:
     """Queue a downlink into downlink device-queue
 
@@ -280,17 +283,22 @@ def queue_downlink(
         jsonObject (Optional[dict], optional): Unknown. Defaults to None.
         reference (Optional[str], optional): Random reference
             (used on ACK notification). Defaults to None.
+        convert_to_base64 (bool, optional): Enable base64 conversion from hex.
+            Defaults to True.
     """
     global config
     global client
     data = {
         "fport": fport,
         "devEUI": devEUI,
-        "data": b64encode(
-            data.strip().lower().encode(config["globalSettings"]["encoding"])
-        ).decode(config["globalSettings"]["encoding"]),
+        "data": b64encode(bytes.fromhex(data.strip().lower())).decode(
+            config["general"]["encoding"]
+        )
+        if convert_to_base64
+        else data.strip().lower(),
         "confirmed": confirmed,
     }
+    log.info(f"bool:{convert_to_base64}, data: {data['data']}")
     if isinstance(jsonObject, dict):
         data["jsonObject"] = jsonObject
     if isinstance(reference, str):
@@ -464,25 +472,24 @@ if __name__ == "__main__":
                 # * queue downlinks * -------------------------------------
                 for downlink in downlinks:
                     try:
-                        pass
-                        # response = queue_downlink(
-                        #     devEUI=dev_eui,
-                        #     data=downlink,  # .strip().lower() + base64 enc.
-                        #     fport=server["downlinkSettings"]["fport"],
-                        #     confirmed=server["downlinkSettings"]["confirmed"],
-                        #     reference=str(n_downlinks + 1),
-                        # )
-                        # if response.status_code == 200:
-                        #     n_downlinks += 1
-                        #     log.debug(
-                        #         f"Added downlink '{downlink}' to "
-                        #         f"{_trace()} queue."
-                        #     )
-                        # else:
-                        #     log.error(
-                        #         f"Failed to add downlink '{downlink}' to "
-                        #         f"{_trace()} queue."
-                        #     )
+                        response = queue_downlink(
+                            devEUI=dev_eui,
+                            data=downlink,  # .strip().lower() + base64 enc.
+                            fport=server["downlinkSettings"]["fport"],
+                            confirmed=server["downlinkSettings"]["confirmed"],
+                            reference=str(n_downlinks + 1),
+                        )
+                        if response.status_code == 200:
+                            n_downlinks += 1
+                            log.debug(
+                                f"Added downlink '{downlink}' to "
+                                f"{_trace()} queue."
+                            )
+                        else:
+                            log.error(
+                                f"Failed to add downlink '{downlink}' to "
+                                f"{_trace()} queue."
+                            )
                     except Exception as err:
                         log.error(f"Downlink queue error of {_trace()}: {err}")
                     else:
@@ -557,5 +564,7 @@ if __name__ == "__main__":
         )
 
     log.info("All done.")
+
+    # print(get_downlink_queue(dev_eui).json())
 
 # * EOF * #####################################################################
