@@ -22,6 +22,7 @@ downlinks:
   fport: 2 # LoRa port
   confirmed: true # enables downlink receive confirmation (ACK flag message)
   flushQueue: true # enables downlink queue flush before configuration
+  uplinkFrequency: 3600 # seconds [s]
   resetErrorCounters: true # enables reset of msb error counters
 output:
   filepath: "./downlinks.json"

@@ -23,4 +23,3 @@ client:
     read: 5.0
     write: 5.0
     pool: 5.0
-# todo: reset counters

@@ -227,9 +227,7 @@ def tohex(value: int, zpad: Optional[int] = None) -> str:
     return f"{value:0{zpad}x}"
 
 
-def build_downlinks(
-    row: Series, pressure: int | float, dn: int, reset_counters: bool = True
-) -> List[str]:
+def build_downlinks(row: Series, pressure: int | float, dn: int) -> List[str]:
     """Build ordered downlink list for MSB configuration.
 
     Args:
@@ -243,6 +241,7 @@ def build_downlinks(
             downlinks for device configuration.
     """
     global log
+    global config
     global pt_table
     downlinks = []
 
@@ -265,7 +264,9 @@ def build_downlinks(
     downlinks.append(f"830{stidx}01{tohex(row['lv'], 2)}")  # LV (noise)
 
     # set steam-loss thresholds and corresponding steam-loss values
-    c = 4 if stidx == SteamTrapTypes.UNA.value and dn >= 40 else 1  # correction
+    c = (
+        4 if stidx == SteamTrapTypes.UNA.value and dn >= 40 else 1
+    )  # correction
     downlinks.append(f"8d0{stidx}00{tohex(row['slth0'], 2)}".lower())  # SLTh0
     downlinks.append(
         f"8d0{stidx}01{tohex(row['slval0']*c, 2)}".lower()
@@ -276,15 +277,15 @@ def build_downlinks(
     downlinks.append(f"8d0{stidx}05{tohex(row['slval2']*c, 2)}")  # SLVal2
 
     # set counters thresholds
-    # todo: ...
     downlinks.append(f"8402{tohex(36, 4)}")  # WarnCntThDef
     downlinks.append(f"8502{tohex(72, 4)}")  # ErrCntThDef
 
-    # reset counters and set uplink frequency back to 1h
-    if reset_counters:
+    # reset counters and set uplink frequency back to desired sample period
+    if config["downlinks"]["resetErrorCounters"]:
         downlinks.append(f"04fc")  # counters reset
-    downlinks.append(tohex(0x01000000 | 3600, 8))  # 1h uplink frequency
-    # todo: put uplink frequency in config
+    downlinks.append(
+        tohex(0x01000000 | config["downlinks"]["uplinkFrequency"], 8)
+    )
 
     return downlinks
 
@@ -400,7 +401,7 @@ if __name__ == "__main__":
                             dct["server"][server_index]["downlinks"][
                                 row["deveui"]
                             ] = build_downlinks(
-                                _row,   # loop-up table
+                                _row,  # loop-up table
                                 pressure,
                                 row["dn"],  # user defined input
                                 config["downlinks"]["resetErrorCounters"],
