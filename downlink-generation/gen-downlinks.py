@@ -188,9 +188,6 @@ def import_xlsx_specs(filepath: str = "./template.xlsx") -> DataFrame:
         else:
             log.debug(f"Got unexpected column: {col}")
             unexpected_columns.append(col)
-            # todo: improve ...
-
-            # raise ValueError(f"Got unexpected column (index: {i}): {col}")
     else:
         df.drop(unexpected_columns, axis=1, inplace=True)
         df.columns = _columns
@@ -233,6 +230,9 @@ def build_downlinks(row: Series, pressure: int | float, dn: int) -> List[str]:
     Args:
         row (Series): Matched parameter row.
         pressure (int | float): Corresponding differential pressure.
+        dn (int): Nominal pipe size.
+
+
         reset_counters (bool, optional): Whenever to reset warn and error
             counters. Defaults to True.
 

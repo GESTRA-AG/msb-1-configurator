@@ -158,7 +158,6 @@ def trycatchcall(func: Callable) -> Callable:
         try:
             response: Response = func(*args, **kwargs)
             response.raise_for_status()
-            return response
         except HTTPStatusError as httperr:
             log.error(
                 f"Got invalid HTTP status code after calling {func.__name__}: "
@@ -170,11 +169,11 @@ def trycatchcall(func: Callable) -> Callable:
                 f"cause: {err}"
             )
         else:
-            # todo: why?
             log.debug(
                 f"Successfully called '{func.__name__}' (API call), "
                 f"Response.json() (dump): {json_dump(response.json())}"
             )
+            return response
 
     return wrapper
 
