@@ -1,7 +1,7 @@
 ---
 input:
   filepath: "./input.xlsx" # if not present, template.xlsx will be used
-  skiprows: 2
+  skiprows: 28
 lookup:
   # this does not require any adjustments
   workbook: "./conf-table.xlsx"

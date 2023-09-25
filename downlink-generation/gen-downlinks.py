@@ -174,6 +174,7 @@ def import_xlsx_specs(filepath: str = "./template.xlsx") -> DataFrame:
         "application",
         "condensate-load",
     ]
+    optional_columns = ["twkup", "defective-warning", "defective-alarm"]
     pattern = compile_regex_pattern(
         r"\[.*?\]|\(.*?\)|\{.*?\}|<.*?>|(\d+)|[^a-z\s\-]"  # A-Z not required
     )
@@ -185,11 +186,14 @@ def import_xlsx_specs(filepath: str = "./template.xlsx") -> DataFrame:
         _col = _col.strip("-")
         if _col in expected_columns:
             _columns.append(_col)
+        elif _col in optional_columns:
+            _columns.append(_col)
         else:
             log.debug(f"Got unexpected column: {col}")
             unexpected_columns.append(col)
     else:
         df.drop(unexpected_columns, axis=1, inplace=True)
+        df.dropna(inplace=True)
         df.columns = _columns
         # todo: check mandantory columns based on configured server in config.yaml
         return df
@@ -264,28 +268,40 @@ def build_downlinks(row: Series, pressure: int | float, dn: int) -> List[str]:
     downlinks.append(f"830{stidx}01{tohex(row['lv'], 2)}")  # LV (noise)
 
     # set steam-loss thresholds and corresponding steam-loss values
-    c = (
-        4 if stidx == SteamTrapTypes.UNA.value and dn >= 40 else 1
-    )  # correction
     downlinks.append(f"8d0{stidx}00{tohex(row['slth0'], 2)}".lower())  # SLTh0
     downlinks.append(
-        f"8d0{stidx}01{tohex(row['slval0']*c, 2)}".lower()
+        f"8d0{stidx}01{tohex(row['slval0'], 2)}".lower()
     )  # SLVal0
     downlinks.append(f"8d0{stidx}02{tohex(row['slth1'], 2)}")  # SLTh1
-    downlinks.append(f"8d0{stidx}03{tohex(row['slval1']*c, 2)}")  # SLVal1
+    c1 = (
+        2 if stidx == SteamTrapTypes.UNA.value and dn >= 40 else 1
+    )  # correction 1
+    slval1 = row["slval1"] * c1
+    slval1 = 255 if slval1 > 255 else slval1
+    downlinks.append(f"8d0{stidx}03{tohex(slval1, 2)}")  # SLVal1
     downlinks.append(f"8d0{stidx}04{tohex(row['slth2'], 2)}")  # SLTh2
-    downlinks.append(f"8d0{stidx}05{tohex(row['slval2']*c, 2)}")  # SLVal2
+    c2 = (
+        4 if stidx == SteamTrapTypes.UNA.value and dn >= 40 else 1
+    )  # correction 2
+    slval2 = row["slval2"] * c2
+    slval2 = 255 if slval2 > 255 else slval2
+    downlinks.append(f"8d0{stidx}05{tohex(slval2, 2)}")  # SLVal2
 
     # set counters thresholds
-    downlinks.append(f"8402{tohex(36, 4)}")  # WarnCntThDef
-    downlinks.append(f"8502{tohex(72, 4)}")  # ErrCntThDef
+    warn_cnt_th_def = (
+        row["defective-warning"] if "defective-warning" in row else 360
+    )
+    downlinks.append(f"8402{tohex(warn_cnt_th_def, 4)}")  # WarnCntThDef
+    err_cnt_th_def = (
+        row["defective-alarm"] if "defective-alarm" in row else 720
+    )
+    downlinks.append(f"8502{tohex(err_cnt_th_def, 4)}")  # ErrCntThDef
 
     # reset counters and set uplink frequency back to desired sample period
     if config["downlinks"]["resetErrorCounters"]:
         downlinks.append(f"04fc")  # counters reset
-    downlinks.append(
-        tohex(0x01000000 | config["downlinks"]["uplinkFrequency"], 8)
-    )
+    twkup = row["twkup"] if "twkup" in row else 3600
+    downlinks.append(tohex(0x01000000 | twkup, 8))
 
     return downlinks
 
@@ -329,7 +345,6 @@ if __name__ == "__main__":
 
     # * import custom user specified params * #################################
     try:
-        # todo: print and log a warning if template.xlsx is beeing used
         df = import_xlsx_specs(
             config["input"]["filepath"]
             if pathfx.isfile(config["input"]["filepath"])
@@ -373,10 +388,6 @@ if __name__ == "__main__":
                 if row[param] == _row[param]:  # includes type check
                     params[param] = row[param]
                 else:
-                    # log.debug(
-                    #     "1st layer of param-matching failed (break): "
-                    #     f"idx:{idx}, _idx:{_idx}"
-                    # )
                     break  # if this is executed once, else will not be entered
             else:
                 # additional conditions:
@@ -404,19 +415,15 @@ if __name__ == "__main__":
                                 _row,  # loop-up table
                                 pressure,
                                 row["dn"],  # user defined input
-                                config["downlinks"]["resetErrorCounters"],
                             )
                             break  # to bypass for-else block if matched
                         else:
                             server_index += 1
                     else:
                         server: str = row["server"].strip()
-                        if server.startswith("http://"):
-                            server = server[len("http://") :]
-                        elif server.startswith("https://"):
-                            server = server[len("https://") :]
                         server = row["server"].strip().split(":")
                         if len(server) == 1:
+                            protocol = None
                             host = server[0]
                             # ! add other local server ports here -------------
                             if config["server"].lower() == "ug6x":
@@ -426,11 +433,24 @@ if __name__ == "__main__":
                                 # fallback for non-local / cloud servers
                                 port = 443
                         elif len(server) == 2:
-                            host = server[0]
-                            port = server[1]
+                            if server[0].startswith("https"):
+                                protocol = server[0]
+                                host = server[1][2:]  # remove //...
+                                port = 443
+                            elif server[0].startswith("http"):
+                                protocol = server[0][2:]  # remove //...
+                                host = server[1]
+                                port = 80
+                            else:
+                                protocol = None
+                                host = server[0]
+                                port = server[1]
+                        elif len(server) == 3:
+                            protocol = server[0]
+                            host = server[1][2:]  # remove //...
+                            port = server[2]
                         else:
-                            # todo: do not raise exception, log instead
-                            raise ValueError(
+                            log.critical(
                                 "Server address contains to many elements: "
                                 f"{len(server)}, server.split(':'): {server}"
                             )
@@ -439,7 +459,11 @@ if __name__ == "__main__":
                         )
                         dct["server"].append(
                             {
-                                "address": {"host": host, "port": port},
+                                "address": {
+                                    "protocol": protocol,
+                                    "host": host,
+                                    "port": port,
+                                },
                                 "credentials": {
                                     "username": "apiuser",
                                     "password": "password",

@@ -425,10 +425,15 @@ if __name__ == "__main__":
             log.debug(f"Initialized client: {client}")
 
         # * login and get session token for further authentication * ++++++
-        response = login(
+        response: Response = login(
             server["credentials"]["username"],
             server["credentials"]["password"],
         )
+        if response.status_code != 200:
+            log.critical(
+                f"Login to server '{server}' failed. Skipping server block ..."
+            )
+            continue  # continue with next server
 
         downlinks = server["downlinks"]
         # * loop over downlinks per device * ++++++++++++++++++++++++++++++

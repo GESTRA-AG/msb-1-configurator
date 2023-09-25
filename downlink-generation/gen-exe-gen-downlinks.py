@@ -1,4 +1,5 @@
 import os
+import pathlib
 import shutil
 
 import PyInstaller.__main__ as pyinstaller
@@ -18,14 +19,9 @@ if __name__ == "__main__":
     SPECS_PATH: str = "./specs"
 
     # change path if neccessary
-    try:
-        cwd = os.getcwd()
-        if not cwd.endswith(WORK_DIRECTORY):
-            path = os.path.abspath(WORK_DIRECTORY)
-            if os.path.exists(path) and os.path.isdir(path):
-                os.chdir(path)
-    except Exception as err:
-        raise err
+    workdir = pathlib.Path("downlink-generation")
+    if not os.getcwd().endswith(str(workdir)):
+        os.chdir(workdir)
 
     # bundle executable
     try:
@@ -55,5 +51,7 @@ if __name__ == "__main__":
         for exe in dist:
             if exe.startswith(APP_NAME):
                 shutil.copy2(src=f"{DIST_PATH}/{exe}", dst=f"./{exe}")
+        for folder in [DIST_PATH, BUILD_PATH, SPECS_PATH]:
+            shutil.rmtree(folder)
     except Exception as err:
         raise err
