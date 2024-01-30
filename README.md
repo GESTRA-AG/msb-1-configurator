@@ -2,18 +2,18 @@
 
 This repository contains different methods to configure Multisense Bolt (MSB) / ecoBolt devices.
 
-A configuration process can be split into 2 sections:
+A configuration process is splitted into 2 sections:
 
-1. Generating dynamic configuration downlinks based on given parameter set.
+1. Generating configuration downlinks dynamically based on given parameter set.
 2. Publishing the generated configuration downlinks to the corresponding devices.
 
 ## 1. Configuration Downlinks Build
 
-Steps:
+**Steps:**
 
 1. Use the provided excel workbook [template.xlsx](https://github.com/GESTRA-AG/msb-1-configurator/blob/main/downlink-generation/template.xlsx) to set the configuration parameters for each device.
 2. Adjust the [config.yaml](https://github.com/GESTRA-AG/msb-1-configurator/blob/main/downlink-generation/config.yaml)
-   - Change the **input** path to the filepath of your adjusted [template.xlsx](https://github.com/GESTRA-AG/msb-1-configurator/blob/main/downlink-generation/template.xlsx) file (optional).
+   - Change the **input** path to the filepath of your adjusted [template.xlsx](https://github.com/GESTRA-AG/msb-1-configurator/blob/main/downlink-generation/template.xlsx) file (optional, defaults to _input.xlsx_).
    - Change the **output** path to the desired filepath to save the generated configuration downlinks (optional).
    - Set the **server** to one of following implemented solutions (**required**):
      - [UG6x](#ug6x-milesight-gateway)
